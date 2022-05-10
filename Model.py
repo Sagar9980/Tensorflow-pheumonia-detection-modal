@@ -1,20 +1,23 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import PIL
 import tensorflow as tf
 
 
-
-
+#data for training
 data_dir = os.path.join(os.getcwd(), "chest_xray/train")
+
+#data for test
 test_dir = os.path.join(os.getcwd(), "chest_xray/test_img/test.jpeg")
 
 
+#image modification before process
 batch_size = 32
 img_height = 180
 img_width = 180
 
+
+#training date being ready
 train_ds = tf.keras.utils.image_dataset_from_directory(
   data_dir,
   validation_split=0.2,
@@ -34,24 +37,13 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
 class_names = train_ds.class_names
 # print(class_names)
 
-# plt.figure(figsize=(10, 10))
-# for images, labels in train_ds.take(1):
-#   for i in range(9):
-#     ax = plt.subplot(3, 3, i + 1)
-#     plt.imshow(images[i].numpy().astype("uint8"))
-#     plt.title(class_names[labels[i]])
-#     plt.axis("off")
-#     plt.show()
 
-# for image_batch, labels_batch in train_ds:
-#   print(image_batch.shape)
-#   print(labels_batch.shape)
-#   break
+#for minimization of overfitting
 AUTOTUNE = tf.data.AUTOTUNE
-
 train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
+#making data ready for process
 normalization_layer = tf.keras.layers.Rescaling(1./255)
 normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
 image_batch, labels_batch = next(iter(normalized_ds))
@@ -61,6 +53,8 @@ print(np.min(first_image), np.max(first_image))
 
 num_classes = len(class_names)
 
+
+#modal creating
 model = tf.keras.Sequential([
   tf.keras.layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)),
   tf.keras.layers.Conv2D(16, 3, padding='same', activation='relu'),
@@ -74,12 +68,16 @@ model = tf.keras.Sequential([
   tf.keras.layers.Dense(num_classes)
 ])
 
+#compile modal
+
 model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
 
+#summary
 model.summary()
 
+#itration
 epochs = 10
 history = model.fit(
   train_ds,
@@ -95,6 +93,7 @@ val_loss = history.history['val_loss']
 
 epochs_range = range(epochs)
 
+#graph for modal in graph
 plt.figure(figsize=(8, 8))
 plt.subplot(1, 2, 1)
 plt.plot(epochs_range, acc, label='Training Accuracy')
@@ -115,7 +114,8 @@ img = tf.keras.utils.load_img(
   test_dir, target_size=(img_height, img_width)
 )
 img_array = tf.keras.utils.img_to_array(img)
-img_array = tf.expand_dims(img_array, 0) # Create a batch
+# Create a batch
+img_array = tf.expand_dims(img_array, 0)
 
 predictions = model.predict(img_array)
 score = tf.nn.softmax(predictions[0])
